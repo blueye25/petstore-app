@@ -5,6 +5,7 @@ import random
 import sqlite3
 import datetime
 import os
+import csv
 
 app = Flask(__name__)
 app.secret_key = 'secret_key_for_sessions'
@@ -33,6 +34,25 @@ def init_db():
     )''')
     conn.commit()
     conn.close()
+
+# פונקציה לייבוא לקוחות מקובץ CSV
+def import_customers_from_csv(csv_file_path):
+    with open(csv_file_path, newline='', encoding='utf-8-sig') as csvfile:
+        reader = csv.DictReader(csvfile)
+        conn = sqlite3.connect('customers.db')
+        c = conn.cursor()
+        for row in reader:
+            name = row.get("name", "").strip()
+            phone = row.get("phone", "").strip()
+            group_type = row.get("group_type", "").strip()
+            if name and phone:
+                try:
+                    c.execute("INSERT OR IGNORE INTO customers (name, phone, group_type) VALUES (?, ?, ?)",
+                              (name, phone, group_type))
+                except Exception as e:
+                    print(f"שגיאה בהוספת לקוח {name}: {e}")
+        conn.commit()
+        conn.close()
 
 # פונקציה לשמירת פידבק
 def save_feedback(name, phone, group_type, choice, additional, payment):
@@ -155,5 +175,10 @@ def verify():
 
 if __name__ == '__main__':
     init_db()
+    try:
+        import_customers_from_csv("לקוחות_סופיים.csv")
+        print("✅ הלקוחות נטענו למסד הנתונים בהצלחה.")
+    except Exception as e:
+        print(f"❌ שגיאה בטעינת הלקוחות: {e}")
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
