@@ -1,0 +1,151 @@
+# שלב 1: שלד בסיסי של אפליקציית Flask
+from flask import Flask, render_template, request, redirect, url_for, session
+from flask_session import Session
+import random
+import sqlite3
+import datetime
+
+app = Flask(__name__)
+app.secret_key = 'secret_key_for_sessions'
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
+
+# יצירת בסיס נתונים פשוט של לקוחות ופידבק
+def init_db():
+    conn = sqlite3.connect('customers.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS customers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        phone TEXT UNIQUE,
+        group_type TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        phone TEXT,
+        group_type TEXT,
+        choice TEXT,
+        additional TEXT,
+        payment TEXT,
+        timestamp DATETIME
+    )''')
+    conn.commit()
+    conn.close()
+
+# פונקציה לשמירת פידבק
+def save_feedback(name, phone, group_type, choice, additional, payment):
+    conn = sqlite3.connect('customers.db')
+    c = conn.cursor()
+    c.execute('''INSERT INTO feedback (name, phone, group_type, choice, additional, payment, timestamp)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
+              (name, phone, group_type, choice, additional, payment, datetime.datetime.now()))
+    conn.commit()
+    conn.close()
+
+# דף ניהול לצפייה בפידבק
+@app.route('/admin/feedback')
+def view_feedback():
+    conn = sqlite3.connect('customers.db')
+    c = conn.cursor()
+    c.execute('''SELECT name, phone, group_type, choice, additional, payment, timestamp FROM feedback ORDER BY timestamp DESC''')
+    rows = c.fetchall()
+    conn.close()
+
+    html = '''
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            table { width: 100%; border-collapse: collapse; font-family: Arial; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+            th { background-color: #f2f2f2; }
+            h2 { font-family: Arial; }
+        </style>
+    </head>
+    <body>
+        <h2>רשימת פניות לקוחות</h2>
+        <table>
+            <tr>
+                <th>שם</th>
+                <th>טלפון</th>
+                <th>קבוצה</th>
+                <th>בחירה</th>
+                <th>פרטים נוספים</th>
+                <th>תשלום</th>
+                <th>תאריך</th>
+            </tr>
+    '''
+    for row in rows:
+        html += f"<tr>{''.join(f'<td>{cell}</td>' for cell in row)}</tr>"
+
+    html += '''
+        </table>
+    </body>
+    </html>
+    '''
+    return html
+
+# דף הבית - הזנת מספר טלפון
+@app.route('/', methods=['GET', 'POST'])
+def home():
+    if request.method == 'POST':
+        phone = request.form['phone']
+        otp = random.randint(1000, 9999)
+        session['phone'] = phone
+        session['otp'] = str(otp)
+        print(f"OTP שנשלח ללקוח: {otp}")
+        return redirect(url_for('verify'))
+    return '''
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body { font-family: Arial; padding: 20px; }
+            input { padding: 10px; width: 100%; margin-bottom: 10px; }
+            button { padding: 10px; width: 100%; background-color: #28a745; color: white; border: none; }
+        </style>
+    </head>
+    <body>
+        <h2>ברוך הבא לחנות "משפחה על 4"</h2>
+        <form method="POST">
+            <label>מספר טלפון:</label>
+            <input type="text" name="phone" placeholder="הקלד מספר טלפון" required>
+            <button type="submit">שלח קוד אימות</button>
+        </form>
+    </body>
+    </html>
+    '''
+
+# דף אימות OTP
+@app.route('/verify', methods=['GET', 'POST'])
+def verify():
+    if request.method == 'POST':
+        input_otp = request.form['otp']
+        if input_otp == session.get('otp'):
+            return redirect(url_for('questions'))
+        else:
+            return "<h3>קוד שגוי, נסה שוב.</h3>"
+    return '''
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body { font-family: Arial; padding: 20px; }
+            input { padding: 10px; width: 100%; margin-bottom: 10px; }
+            button { padding: 10px; width: 100%; background-color: #007bff; color: white; border: none; }
+        </style>
+    </head>
+    <body>
+        <h2>הזן את קוד האימות שקיבלת:</h2>
+        <form method="POST">
+            <input type="text" name="otp" placeholder="הקלד קוד אימות" required>
+            <button type="submit">אימות</button>
+        </form>
+    </body>
+    </html>
+    '''
+
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=True)
