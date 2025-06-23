@@ -44,6 +44,9 @@ def save_feedback(name, phone, group_type, choice, additional, payment):
     conn.commit()
     conn.close()
 
+# HTML עבור לוגו בראש הדף
+LOGO_HTML = '<div style="text-align:center;"><img src="/static/logo.jpeg" alt="לוגו" height="80"></div>'
+
 # דף ניהול לצפייה בפידבק
 @app.route('/admin/feedback')
 def view_feedback():
@@ -53,18 +56,19 @@ def view_feedback():
     rows = c.fetchall()
     conn.close()
 
-    html = '''
+    html = f'''
     <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-            table { width: 100%; border-collapse: collapse; font-family: Arial; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
-            th { background-color: #f2f2f2; }
-            h2 { font-family: Arial; }
+            table {{ width: 100%; border-collapse: collapse; font-family: Arial; }}
+            th, td {{ border: 1px solid #ccc; padding: 8px; text-align: right; }}
+            th {{ background-color: #f2f2f2; }}
+            h2 {{ font-family: Arial; }}
         </style>
     </head>
     <body>
+        {LOGO_HTML}
         <h2>רשימת פניות לקוחות</h2>
         <table>
             <tr>
@@ -97,17 +101,18 @@ def home():
         session['otp'] = str(otp)
         print(f"OTP שנשלח ללקוח: {otp}")
         return redirect(url_for('verify'))
-    return '''
+    return f'''
     <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-            body { font-family: Arial; padding: 20px; }
-            input { padding: 10px; width: 100%; margin-bottom: 10px; }
-            button { padding: 10px; width: 100%; background-color: #28a745; color: white; border: none; }
+            body {{ font-family: Arial; padding: 20px; }}
+            input {{ padding: 10px; width: 100%; margin-bottom: 10px; }}
+            button {{ padding: 10px; width: 100%; background-color: #28a745; color: white; border: none; }}
         </style>
     </head>
     <body>
+        {LOGO_HTML}
         <h2>ברוך הבא לחנות "משפחה על 4"</h2>
         <form method="POST">
             <label>מספר טלפון:</label>
@@ -127,17 +132,18 @@ def verify():
             return redirect(url_for('questions'))
         else:
             return "<h3>קוד שגוי, נסה שוב.</h3>"
-    return '''
+    return f'''
     <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-            body { font-family: Arial; padding: 20px; }
-            input { padding: 10px; width: 100%; margin-bottom: 10px; }
-            button { padding: 10px; width: 100%; background-color: #007bff; color: white; border: none; }
+            body {{ font-family: Arial; padding: 20px; }}
+            input {{ padding: 10px; width: 100%; margin-bottom: 10px; }}
+            button {{ padding: 10px; width: 100%; background-color: #007bff; color: white; border: none; }}
         </style>
     </head>
     <body>
+        {LOGO_HTML}
         <h2>הזן את קוד האימות שקיבלת:</h2>
         <form method="POST">
             <input type="text" name="otp" placeholder="הקלד קוד אימות" required>
