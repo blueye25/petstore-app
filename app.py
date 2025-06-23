@@ -4,6 +4,7 @@ from flask_session import Session
 import random
 import sqlite3
 import datetime
+import os
 
 app = Flask(__name__)
 app.secret_key = 'secret_key_for_sessions'
@@ -148,4 +149,5 @@ def verify():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
