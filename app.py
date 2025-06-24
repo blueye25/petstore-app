@@ -119,6 +119,20 @@ def home():
         otp = random.randint(1000, 9999)
         session['phone'] = phone
         session['otp'] = str(otp)
+
+        conn = sqlite3.connect('customers.db')
+        c = conn.cursor()
+        c.execute("SELECT name, group_type FROM customers WHERE phone = ?", (phone,))
+        result = c.fetchone()
+        conn.close()
+
+        if result:
+            session['name'] = result[0]
+            session['group_type'] = result[1]
+        else:
+            session['name'] = "אורח"
+            session['group_type'] = "רגיל"
+
         print(f"OTP שנשלח ללקוח: {otp}")
         return redirect(url_for('verify'))
     return f'''
@@ -142,43 +156,3 @@ def home():
     </body>
     </html>
     '''
-
-# דף אימות OTP
-@app.route('/verify', methods=['GET', 'POST'])
-def verify():
-    if request.method == 'POST':
-        input_otp = request.form['otp']
-        if input_otp == session.get('otp'):
-            return redirect(url_for('questions'))
-        else:
-            return "<h3>קוד שגוי, נסה שוב.</h3>"
-    return f'''
-    <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            body {{ font-family: Arial; padding: 20px; }}
-            input {{ padding: 10px; width: 100%; margin-bottom: 10px; }}
-            button {{ padding: 10px; width: 100%; background-color: #007bff; color: white; border: none; }}
-        </style>
-    </head>
-    <body>
-        {LOGO_HTML}
-        <h2>הזן את קוד האימות שקיבלת:</h2>
-        <form method="POST">
-            <input type="text" name="otp" placeholder="הקלד קוד אימות" required>
-            <button type="submit">אימות</button>
-        </form>
-    </body>
-    </html>
-    '''
-
-if __name__ == '__main__':
-    init_db()
-    try:
-        import_customers_from_csv("לקוחות_סופיים.csv")
-        print("✅ הלקוחות נטענו למסד הנתונים בהצלחה.")
-    except Exception as e:
-        print(f"❌ שגיאה בטעינת הלקוחות: {e}")
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
